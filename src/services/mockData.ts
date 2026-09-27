@@ -93,7 +93,7 @@ export function mockPredict(input: {
   rainfall: number;
 }) {
   const score = Math.round(input.N + input.rainfall / 2 + input.humidity / 3 + input.K / 4);
-  const pick = CROPS[score % CROPS.length];
+  const pick = CROPS[score % CROPS.length]!;
   const cropConfidence = 0.78 + ((score % 17) / 100) * 1.2;
   const fertConfidence = cropConfidence - 0.03 - (score % 5) / 100;
   return {
