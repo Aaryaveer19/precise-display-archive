@@ -69,10 +69,10 @@ export function SecondaryButton({
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
-  hint?: string;
-  error?: string | null;
-  warning?: string | null;
-  suffix?: string;
+  hint?: string | undefined;
+  error?: string | null | undefined;
+  warning?: string | null | undefined;
+  suffix?: string | undefined;
 };
 
 export function InputField({
