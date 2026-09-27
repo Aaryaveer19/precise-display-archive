@@ -48,7 +48,7 @@ function ProfilePage() {
   useEffect(() => {
     if (user) {
       setName(user.name);
-      setPhone(user.phone);
+      setPhone(user.phone || "");
     }
   }, [user]);
 

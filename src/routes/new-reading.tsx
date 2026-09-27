@@ -127,9 +127,11 @@ function NewReadingPage() {
         rainfall: Number(form.rainfall),
       });
       navigate({ to: "/results" });
-    } catch {
+    } catch (err: any) {
+      console.error("Prediction error:", err);
       setSubmitError(
-        "Something went wrong while generating your recommendation. Please try again.",
+        err?.message ||
+          "Something went wrong while generating your recommendation. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -232,7 +234,9 @@ function NewReadingPage() {
                 loading={submitting}
                 icon={<Sparkles className="h-5 w-5" aria-hidden />}
               >
-                {submitting ? "Analyzing your soil..." : "Get recommendation"}
+                {submitting
+                  ? "Analyzing soil (server waking up, please wait)..."
+                  : "Get recommendation"}
               </PrimaryButton>
             </Card>
           </section>

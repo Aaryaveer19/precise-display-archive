@@ -144,13 +144,26 @@ export async function getReading(id: number): Promise<Reading | null> {
 export async function predict(input: PredictionInput): Promise<PredictionResult> {
   const { data: { user } } = await supabase.auth.getUser();
 
-  const response = await fetch("http://localhost:8000/predict", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input)
-  });
+  const baseUrl = ((import.meta.env['VITE_API_URL'] as string | undefined) || "https://smartfarm-backend-ro9p.onrender.com").replace(/\/+$/, "");
 
-  if (!response.ok) throw new Error("Failed to fetch prediction");
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input)
+    });
+  } catch (networkErr: any) {
+    throw new Error(
+      "Unable to connect to the prediction server. If Render backend was asleep, please wait a moment and try again."
+    );
+  }
+
+  if (!response.ok) {
+    const errorDetail = await response.text().catch(() => "");
+    throw new Error(`Server returned error (${response.status}): ${errorDetail || response.statusText}`);
+  }
+
   const rawData = await response.json();
 
   const prediction = {
@@ -161,23 +174,30 @@ export async function predict(input: PredictionInput): Promise<PredictionResult>
     explanation: `Soil condition is ${rawData.soil_fertility}. Analysis shows N is ${rawData.nutrient_levels.N}, P is ${rawData.nutrient_levels.P}, K is ${rawData.nutrient_levels.K}, and pH is ${rawData.nutrient_levels.pH}. Best combination is ${rawData.recommended_crop} grown with ${rawData.recommended_fertilizer}.`
   };
 
-  // If user is logged in, save reading to Supabase
+  // If user is logged in, safely save reading to Supabase
   if (user) {
-    await supabase.from("readings").insert({
-      user_id: user.id,
-      n: input.N,
-      p: input.P,
-      k: input.K,
-      ph: input.ph,
-      temperature: input.temperature,
-      humidity: input.humidity,
-      rainfall: input.rainfall,
-      crop: prediction.crop,
-      crop_confidence: prediction.crop_confidence,
-      fertilizer: prediction.fertilizer,
-      fertilizer_confidence: prediction.fertilizer_confidence,
-      explanation: prediction.explanation
-    });
+    try {
+      const { error: insertErr } = await supabase.from("readings").insert({
+        user_id: user.id,
+        n: input.N,
+        p: input.P,
+        k: input.K,
+        ph: input.ph,
+        temperature: input.temperature,
+        humidity: input.humidity,
+        rainfall: input.rainfall,
+        crop: prediction.crop,
+        crop_confidence: prediction.crop_confidence,
+        fertilizer: prediction.fertilizer,
+        fertilizer_confidence: prediction.fertilizer_confidence,
+        explanation: prediction.explanation
+      });
+      if (insertErr) {
+        console.warn("Could not save reading to Supabase history:", insertErr.message);
+      }
+    } catch (dbErr) {
+      console.warn("Error inserting reading to database:", dbErr);
+    }
   }
 
   _cachedResult = { ...input, ...prediction, reading_id: Math.floor(Math.random() * 1000), date: new Date().toISOString() };
