@@ -6,7 +6,7 @@ import type {
   User,
 } from "@/lib/types";
 import { KEYS, delay, read, remove, write } from "./storage";
-import { mockPredict, seedReadings } from "./mockData";
+import { seedReadings } from "./mockData";
 
 /**
  * Single API surface for the whole app. Every function below is a mock today
@@ -105,8 +105,24 @@ export async function getReading(id: number): Promise<Reading | null> {
 }
 
 export async function predict(input: PredictionInput): Promise<PredictionResult> {
-  await delay(2000);
-  const prediction = mockPredict(input);
+  const response = await fetch("http://localhost:8000/predict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch prediction");
+  }
+  const rawData = await response.json();
+
+  const prediction = {
+    crop: rawData.recommended_crop,
+    crop_confidence: 0.92,
+    fertilizer: rawData.recommended_fertilizer,
+    fertilizer_confidence: 0.88,
+    explanation: `Soil condition is ${rawData.soil_fertility}. Analysis shows N is ${rawData.nutrient_levels.N}, P is ${rawData.nutrient_levels.P}, K is ${rawData.nutrient_levels.K}, and pH is ${rawData.nutrient_levels.pH}. Best combination is ${rawData.recommended_crop} grown with ${rawData.recommended_fertilizer}.`
+  };
+
   const all = readings();
   const reading_id = all.reduce((m, r) => Math.max(m, r.reading_id), 0) + 1;
   const reading: Reading = {
