@@ -10,13 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as FarmSetupRouteImport } from './routes/farm-setup'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as NewReadingRouteImport } from './routes/new-reading'
 import { Route as SignupRouteImport } from './routes/signup'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FarmSetupRoute = FarmSetupRouteImport.update({
@@ -29,6 +36,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewReadingRoute = NewReadingRouteImport.update({
+  id: '/new-reading',
+  path: '/new-reading',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -37,35 +49,51 @@ const SignupRoute = SignupRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/farm-setup': typeof FarmSetupRoute
   '/login': typeof LoginRoute
+  '/new-reading': typeof NewReadingRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/farm-setup': typeof FarmSetupRoute
   '/login': typeof LoginRoute
+  '/new-reading': typeof NewReadingRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/farm-setup': typeof FarmSetupRoute
   '/login': typeof LoginRoute
+  '/new-reading': typeof NewReadingRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/farm-setup' | '/login' | '/signup'
+  fullPaths:
+    '/' | '/dashboard' | '/farm-setup' | '/login' | '/new-reading' | '/signup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/farm-setup' | '/login' | '/signup'
-  id: '__root__' | '/' | '/farm-setup' | '/login' | '/signup'
+  to: '/' | '/dashboard' | '/farm-setup' | '/login' | '/new-reading' | '/signup'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/farm-setup'
+    | '/login'
+    | '/new-reading'
+    | '/signup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   FarmSetupRoute: typeof FarmSetupRoute
   LoginRoute: typeof LoginRoute
+  NewReadingRoute: typeof NewReadingRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -76,6 +104,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/farm-setup': {
@@ -92,6 +127,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/new-reading': {
+      id: '/new-reading'
+      path: '/new-reading'
+      fullPath: '/new-reading'
+      preLoaderRoute: typeof NewReadingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -104,8 +146,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   FarmSetupRoute: FarmSetupRoute,
   LoginRoute: LoginRoute,
+  NewReadingRoute: NewReadingRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
