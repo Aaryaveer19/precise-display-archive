@@ -14,7 +14,11 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as FarmSetupRouteImport } from './routes/farm-setup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NewReadingRouteImport } from './routes/new-reading'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ResultsRouteImport } from './routes/results'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as HistoryIndexRouteImport } from './routes/history.index'
+import { Route as HistoryIdRouteImport } from './routes/history.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,9 +45,29 @@ const NewReadingRoute = NewReadingRouteImport.update({
   path: '/new-reading',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsRoute = ResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryIndexRoute = HistoryIndexRouteImport.update({
+  id: '/history/',
+  path: '/history/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryIdRoute = HistoryIdRouteImport.update({
+  id: '/history/$id',
+  path: '/history/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -53,7 +77,11 @@ export interface FileRoutesByFullPath {
   '/farm-setup': typeof FarmSetupRoute
   '/login': typeof LoginRoute
   '/new-reading': typeof NewReadingRoute
+  '/profile': typeof ProfileRoute
+  '/results': typeof ResultsRoute
   '/signup': typeof SignupRoute
+  '/history/$id': typeof HistoryIdRoute
+  '/history/': typeof HistoryIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,7 +89,11 @@ export interface FileRoutesByTo {
   '/farm-setup': typeof FarmSetupRoute
   '/login': typeof LoginRoute
   '/new-reading': typeof NewReadingRoute
+  '/profile': typeof ProfileRoute
+  '/results': typeof ResultsRoute
   '/signup': typeof SignupRoute
+  '/history/$id': typeof HistoryIdRoute
+  '/history': typeof HistoryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,14 +102,37 @@ export interface FileRoutesById {
   '/farm-setup': typeof FarmSetupRoute
   '/login': typeof LoginRoute
   '/new-reading': typeof NewReadingRoute
+  '/profile': typeof ProfileRoute
+  '/results': typeof ResultsRoute
   '/signup': typeof SignupRoute
+  '/history/$id': typeof HistoryIdRoute
+  '/history/': typeof HistoryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/dashboard' | '/farm-setup' | '/login' | '/new-reading' | '/signup'
+    | '/'
+    | '/dashboard'
+    | '/farm-setup'
+    | '/login'
+    | '/new-reading'
+    | '/profile'
+    | '/results'
+    | '/signup'
+    | '/history/$id'
+    | '/history/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/farm-setup' | '/login' | '/new-reading' | '/signup'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/farm-setup'
+    | '/login'
+    | '/new-reading'
+    | '/profile'
+    | '/results'
+    | '/signup'
+    | '/history/$id'
+    | '/history'
   id:
     | '__root__'
     | '/'
@@ -85,7 +140,11 @@ export interface FileRouteTypes {
     | '/farm-setup'
     | '/login'
     | '/new-reading'
+    | '/profile'
+    | '/results'
     | '/signup'
+    | '/history/$id'
+    | '/history/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,7 +153,11 @@ export interface RootRouteChildren {
   FarmSetupRoute: typeof FarmSetupRoute
   LoginRoute: typeof LoginRoute
   NewReadingRoute: typeof NewReadingRoute
+  ProfileRoute: typeof ProfileRoute
+  ResultsRoute: typeof ResultsRoute
   SignupRoute: typeof SignupRoute
+  HistoryIdRoute: typeof HistoryIdRoute
+  HistoryIndexRoute: typeof HistoryIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -134,11 +197,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewReadingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results': {
+      id: '/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof ResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history/': {
+      id: '/history/'
+      path: '/history'
+      fullPath: '/history/'
+      preLoaderRoute: typeof HistoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history/$id': {
+      id: '/history/$id'
+      path: '/history/$id'
+      fullPath: '/history/$id'
+      preLoaderRoute: typeof HistoryIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -150,7 +241,11 @@ const rootRouteChildren: RootRouteChildren = {
   FarmSetupRoute: FarmSetupRoute,
   LoginRoute: LoginRoute,
   NewReadingRoute: NewReadingRoute,
+  ProfileRoute: ProfileRoute,
+  ResultsRoute: ResultsRoute,
   SignupRoute: SignupRoute,
+  HistoryIdRoute: HistoryIdRoute,
+  HistoryIndexRoute: HistoryIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

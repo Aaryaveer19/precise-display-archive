@@ -42,7 +42,7 @@ const EMPTY: FormState = {
   rainfall: "",
 };
 
-function fieldError(key: FieldKey, raw: string) {
+function fieldError(raw: string) {
   if (raw.trim() === "") return "This value is required";
   const num = Number(raw);
   if (Number.isNaN(num)) return "Enter a number";
@@ -107,7 +107,7 @@ function NewReadingPage() {
     setSubmitError(null);
     const next: Partial<Record<FieldKey, string>> = {};
     (Object.keys(FIELD_RANGES) as FieldKey[]).forEach((k) => {
-      const err = fieldError(k, form[k]);
+      const err = fieldError(form[k]);
       if (err) next[k] = err;
     });
     setErrors(next);
