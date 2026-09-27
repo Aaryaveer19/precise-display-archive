@@ -8,11 +8,6 @@ import { delay } from "./storage";
  */
 export async function getWeather(location = "Mumbai, Maharashtra"): Promise<Weather> {
   await delay(1100);
-
-  if (Math.random() < 0.08) {
-    throw new Error("WEATHER_UNAVAILABLE");
-  }
-
   const jitter = (base: number, spread: number) =>
     Number((base + (Math.random() * 2 - 1) * spread).toFixed(1));
 

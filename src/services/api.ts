@@ -5,114 +5,152 @@ import type {
   Reading,
   User,
 } from "@/lib/types";
-import { KEYS, delay, read, remove, write } from "./storage";
-import { seedReadings } from "./mockData";
+import { supabase } from "../lib/supabase";
+
+let _cachedResult: Reading | null = null;
 
 /**
- * Single API surface for the whole app. Every function below is a mock today
- * and maps 1:1 to a REST endpoint tomorrow, e.g.
- *   login()  -> POST /api/auth/login
- *   predict()-> POST /api/predict
- * UI components must never call fetch/axios directly.
+ * Modern API surface powered by Supabase Auth and Database
  */
 
-function currentUser(): User | null {
-  return read<User | null>(KEYS.user, null);
-}
+export async function login(identifier: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: identifier, // Assuming email is used instead of phone for simplicity here
+    password,
+  });
+  if (error) throw error;
 
-function readings(): Reading[] {
-  return read<Reading[]>(KEYS.readings, seedReadings);
-}
+  // Transform to local User type
+  const userObj = data.user;
+  const { data: profileData } = await supabase.from("farm_profiles").select("*").eq("user_id", userObj?.id).single();
 
-export async function login(identifier: string, _password: string) {
-  await delay(900);
-  const existing = currentUser();
-  const user: User = existing ?? {
-    user_id: "u_1",
-    name: "Ramesh Patil",
-    phone: /^\d{10}$/.test(identifier) ? identifier : "9876543210",
-    has_farm_profile: true,
-  };
-  write(KEYS.token, "mock.jwt.token");
-  write(KEYS.user, user);
-  if (!read<FarmProfile | null>(KEYS.farm, null) && user.has_farm_profile) {
-    write<FarmProfile>(KEYS.farm, {
-      user_id: user.user_id,
-      location: "Mumbai, Maharashtra",
-      latitude: 19.076,
-      longitude: 72.8777,
-      land_size: "4.5",
-      soil_type: "Alluvial",
-    });
-  }
-  return { token: "mock.jwt.token", user };
-}
-
-export async function signup(name: string, phone: string, _password: string) {
-  await delay(1000);
   const user: User = {
-    user_id: "u_" + Date.now(),
+    user_id: userObj!.id,
+    name: userObj!.user_metadata?.['name'] || "Farmer",
+    email: userObj!.email || identifier,
+    has_farm_profile: !!profileData,
+  };
+
+  return { token: data.session.access_token, user };
+}
+
+export async function signup(name: string, email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name,
+      }
+    }
+  });
+  if (error) throw error;
+
+  const userObj = data.user;
+  const user: User = {
+    user_id: userObj!.id,
     name,
-    phone,
+    email,
     has_farm_profile: false,
   };
-  write(KEYS.token, "mock.jwt.token");
-  write(KEYS.user, user);
-  write(KEYS.readings, []);
-  remove(KEYS.farm);
-  return { token: "mock.jwt.token", user };
+
+  return { token: data.session?.access_token || "", user };
 }
 
-export function logout() {
-  remove(KEYS.token);
+export async function logout() {
+  await supabase.auth.signOut();
 }
 
 export async function getFarmProfile(): Promise<FarmProfile | null> {
-  await delay(350);
-  return read<FarmProfile | null>(KEYS.farm, null);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("farm_profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
+
+  if (error || !data) return null;
+  return data as FarmProfile;
 }
 
 export async function saveFarmProfile(profile: FarmProfile): Promise<FarmProfile> {
-  await delay(700);
-  write(KEYS.farm, profile);
-  const user = currentUser();
-  if (user) write(KEYS.user, { ...user, has_farm_profile: true });
-  return profile;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not logged in");
+
+  const { data, error } = await supabase
+    .from("farm_profiles")
+    .upsert({
+      user_id: user.id,
+      location: profile.location,
+      latitude: profile.latitude,
+      longitude: profile.longitude,
+      land_size: profile.land_size,
+      soil_type: profile.soil_type,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as FarmProfile;
 }
 
 export async function updateUser(patch: Partial<User>): Promise<User> {
-  await delay(500);
-  const user = currentUser();
-  const next = { ...(user as User), ...patch } as User;
-  write(KEYS.user, next);
-  return next;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not logged in");
+
+  const { data, error } = await supabase.auth.updateUser({
+    data: { ...user.user_metadata, ...patch }
+  });
+
+  if (error) throw error;
+  return {
+    user_id: data.user.id,
+    name: data.user.user_metadata['name'],
+    email: data.user.email || '',
+    has_farm_profile: patch.has_farm_profile ?? false
+  };
 }
 
 export async function getReadings(): Promise<Reading[]> {
-  await delay(600);
-  return [...readings()].sort((a, b) => +new Date(b.date) - +new Date(a.date));
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("readings")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("date", { ascending: false });
+
+  if (error || !data) return [];
+  // map reading_id for UI mock mapping if needed, or just return data
+  return data.map((row: any) => ({
+    ...row,
+    reading_id: parseInt(row.id.substring(0, 8), 16) % 10000 // Hash UUID just to satisfy old reading_id number type
+  })) as Reading[];
 }
 
 export async function getLatestReading(): Promise<Reading | null> {
-  await delay(450);
   const all = await getReadings();
   return all[0] ?? null;
 }
 
 export async function getReading(id: number): Promise<Reading | null> {
-  await delay(400);
-  return readings().find((r) => r.reading_id === id) ?? null;
+  const all = await getReadings();
+  return all.find((r) => r.reading_id === id) ?? null;
 }
 
 export async function predict(input: PredictionInput): Promise<PredictionResult> {
+  const { data: { user } } = await supabase.auth.getUser();
+
   const response = await fetch("http://localhost:8000/predict", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input)
   });
-  if (!response.ok) {
-    throw new Error("Failed to fetch prediction");
-  }
+
+  if (!response.ok) throw new Error("Failed to fetch prediction");
   const rawData = await response.json();
 
   const prediction = {
@@ -123,21 +161,32 @@ export async function predict(input: PredictionInput): Promise<PredictionResult>
     explanation: `Soil condition is ${rawData.soil_fertility}. Analysis shows N is ${rawData.nutrient_levels.N}, P is ${rawData.nutrient_levels.P}, K is ${rawData.nutrient_levels.K}, and pH is ${rawData.nutrient_levels.pH}. Best combination is ${rawData.recommended_crop} grown with ${rawData.recommended_fertilizer}.`
   };
 
-  const all = readings();
-  const reading_id = all.reduce((m, r) => Math.max(m, r.reading_id), 0) + 1;
-  const reading: Reading = {
-    reading_id,
-    date: new Date().toISOString(),
-    ...input,
-    ...prediction,
-  };
-  write(KEYS.readings, [reading, ...all]);
-  write(KEYS.lastResult, reading);
-  return { ...prediction, reading_id };
+  // If user is logged in, save reading to Supabase
+  if (user) {
+    await supabase.from("readings").insert({
+      user_id: user.id,
+      n: input.N,
+      p: input.P,
+      k: input.K,
+      ph: input.ph,
+      temperature: input.temperature,
+      humidity: input.humidity,
+      rainfall: input.rainfall,
+      crop: prediction.crop,
+      crop_confidence: prediction.crop_confidence,
+      fertilizer: prediction.fertilizer,
+      fertilizer_confidence: prediction.fertilizer_confidence,
+      explanation: prediction.explanation
+    });
+  }
+
+  _cachedResult = { ...input, ...prediction, reading_id: Math.floor(Math.random() * 1000), date: new Date().toISOString() };
+  return { ...prediction, reading_id: _cachedResult.reading_id };
 }
 
+// Memory-based implementation for getting cached result
 export function getCachedResult(): Reading | null {
-  return read<Reading | null>(KEYS.lastResult, null);
+  return _cachedResult;
 }
 
 export { getWeather } from "./weatherService";

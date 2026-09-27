@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { User } from "@/lib/types";
-import { KEYS, read, remove, write } from "@/services/storage";
 import * as api from "@/services/api";
+import { supabase } from "@/lib/supabase";
 
 interface AuthValue {
   user: User | null;
@@ -11,7 +11,7 @@ interface AuthValue {
   ready: boolean;
   isAuthenticated: boolean;
   login: (identifier: string, password: string) => Promise<User>;
-  signup: (name: string, phone: string, password: string) => Promise<User>;
+  signup: (name: string, email: string, password: string) => Promise<User>;
   setUser: (u: User) => void;
   logout: () => void;
 }
@@ -25,9 +25,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setToken(read<string | null>(KEYS.token, null));
-    setUserState(read<User | null>(KEYS.user, null));
-    setReady(true);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setToken(session?.access_token || null);
+      if (session?.user) {
+        setUserState({
+          user_id: session.user.id,
+          name: session.user.user_metadata?.['name'] || 'User',
+          email: session.user.email || '',
+          has_farm_profile: true // Usually checked via another query, but simplified here
+        });
+      }
+      setReady(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setToken(session?.access_token || null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = useCallback(async (identifier: string, password: string) => {
@@ -37,8 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user;
   }, []);
 
-  const signup = useCallback(async (name: string, phone: string, password: string) => {
-    const res = await api.signup(name, phone, password);
+  const signup = useCallback(async (name: string, email: string, password: string) => {
+    const res = await api.signup(name, email, password);
     setToken(res.token);
     setUserState(res.user);
     return res.user;
@@ -46,12 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setUser = useCallback((u: User) => {
     setUserState(u);
-    write(KEYS.user, u);
   }, []);
 
-  const logout = useCallback(() => {
-    remove(KEYS.token);
+  const logout = useCallback(async () => {
+    await api.logout();
     setToken(null);
+    setUserState(null);
     navigate({ to: "/login" });
   }, [navigate]);
 

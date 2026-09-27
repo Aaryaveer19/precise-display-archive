@@ -23,7 +23,7 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", phone: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ function SignupPage() {
   const validate = () => {
     const next: Record<string, string> = {};
     if (!form.name.trim()) next['name'] = "Enter your name";
-    if (!/^\d{10}$/.test(form.phone.trim())) next['phone'] = "Phone number must be 10 digits";
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) next['email'] = "Enter a valid email";
     if (form.password.length < 6) next['password'] = "Password must be at least 6 characters";
     if (form.confirm !== form.password) next['confirm'] = "Passwords do not match";
     setErrors(next);
@@ -47,7 +47,7 @@ function SignupPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await signup(form.name.trim(), form.phone.trim(), form.password);
+      await signup(form.name.trim(), form.email.trim(), form.password);
       toast.success("Account created");
       navigate({ to: "/farm-setup" });
     } catch {
@@ -70,13 +70,13 @@ function SignupPage() {
           error={errors['name']}
         />
         <InputField
-          label="Phone number"
-          inputMode="numeric"
-          autoComplete="tel"
-          placeholder="10 digit mobile number"
-          value={form.phone}
-          onChange={set("phone")}
-          error={errors['phone']}
+          label="Email address"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          value={form.email}
+          onChange={set("email")}
+          error={errors['email']}
         />
         <InputField
           label="Password"

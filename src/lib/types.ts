@@ -1,7 +1,7 @@
 export interface User {
   user_id: string;
   name: string;
-  phone: string;
+  email: string;
   has_farm_profile: boolean;
 }
 
